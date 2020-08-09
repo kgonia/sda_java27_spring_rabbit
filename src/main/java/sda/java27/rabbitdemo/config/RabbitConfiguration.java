@@ -7,9 +7,10 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import sda.java27.rabbitdemo.Receiver;
+import sda.java27.rabbitdemo.listener.Receiver;
 
 @Configuration
 public class RabbitConfiguration {
@@ -18,9 +19,16 @@ public class RabbitConfiguration {
 
     static final String queueName = "spring-kg-boot";
 
+    static final public String queueAllMessages = "queue-all-messages";
+
     @Bean
     Queue queue() {
         return new Queue(queueName, false);
+    }
+
+    @Bean
+    Queue queueAllMessages() {
+        return new Queue(queueAllMessages, false);
     }
 
     @Bean
@@ -29,8 +37,13 @@ public class RabbitConfiguration {
     }
 
     @Bean
-    Binding binding(Queue queue, TopicExchange exchange) {
+    Binding binding(@Qualifier("queue") Queue queue, TopicExchange exchange) {
         return BindingBuilder.bind(queue).to(exchange).with("foo.bar.kg");
+    }
+
+    @Bean
+    Binding bindingAllMessageg(@Qualifier("queueAllMessages") Queue queue, TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with("foo.bar.#");
     }
 
     @Bean
@@ -38,7 +51,7 @@ public class RabbitConfiguration {
                                              MessageListenerAdapter listenerAdapter) {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.setQueueNames(queueName);
+        container.setQueueNames(queueName, queueAllMessages);
         container.setMessageListener(listenerAdapter);
         return container;
     }
